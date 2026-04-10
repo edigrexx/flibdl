@@ -1,9 +1,9 @@
-const CACHE_NAME = 'flibdl-v5';
+const CACHE_NAME = 'flibdl-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/css/style.css?v=5',
-  '/js/app.js?v=5',
+  '/css/style.css?v=7',
+  '/js/app.js?v=7',
   '/js/api.js',
   '/js/pwa.js',
   '/manifest.json',

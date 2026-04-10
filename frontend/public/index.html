@@ -14,7 +14,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" type="image/png" href="/icons/icon-192.png" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-  <link rel="stylesheet" href="/css/style.css?v=5" />
+  <link rel="stylesheet" href="/css/style.css?v=7" />
 </head>
 <body>
 
@@ -168,6 +168,47 @@
     </div>
   </div>
 
+  <!-- ═══ Book Detail Sheet ═══ -->
+  <div id="book-sheet-overlay" class="modal-overlay">
+    <div class="modal book-sheet">
+      <div class="modal-handle"></div>
+
+      <div class="book-sheet-top">
+        <div class="book-sheet-cover">
+          <div class="rc-cover-inner rc-cover-lg">
+            <img id="book-sheet-img" loading="lazy" alt="" onerror="this.style.display='none'" />
+          </div>
+        </div>
+        <div class="book-sheet-info">
+          <div class="book-sheet-badge">📖 Книга</div>
+          <div id="book-sheet-title" class="book-sheet-title"></div>
+          <div id="book-sheet-author" class="book-sheet-author"></div>
+          <div class="book-sheet-meta">
+            <span id="book-sheet-id" class="rc-id"></span>
+            <a id="book-sheet-flib-link" href="#" target="_blank" rel="noopener noreferrer" class="rc-flib-link">
+              Флибуста
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="format-label">Формат файла</div>
+      <div class="format-grid">
+        <div class="format-pill"><input type="radio" name="sheet-fmt" value="epub"   id="sh-epub"   checked /><label for="sh-epub"><span class="fmt-icon">📱</span>EPUB</label></div>
+        <div class="format-pill"><input type="radio" name="sheet-fmt" value="fb2"    id="sh-fb2"           /><label for="sh-fb2"><span class="fmt-icon">📄</span>FB2</label></div>
+        <div class="format-pill"><input type="radio" name="sheet-fmt" value="fb2zip" id="sh-fb2zip"        /><label for="sh-fb2zip"><span class="fmt-icon">📦</span>FB2.ZIP</label></div>
+        <div class="format-pill"><input type="radio" name="sheet-fmt" value="mobi"   id="sh-mobi"          /><label for="sh-mobi"><span class="fmt-icon">📕</span>MOBI</label></div>
+        <div class="format-pill"><input type="radio" name="sheet-fmt" value="html"   id="sh-html"          /><label for="sh-html"><span class="fmt-icon">🌐</span>HTML</label></div>
+      </div>
+
+      <button id="book-sheet-dl-btn" class="btn btn-primary btn-full" style="margin-top:4px;">
+        <span id="book-sheet-spinner" class="spinner" style="display:none;"></span>
+        <span id="book-sheet-dl-text">Скачать</span>
+      </button>
+    </div>
+  </div>
+
   <!-- ═══ Settings Modal ═══ -->
   <div id="settings-overlay" class="modal-overlay">
     <div class="modal">
@@ -195,6 +236,6 @@
     <p>FlibDL · Книги в один клик</p>
   </footer>
 
-  <script type="module" src="/js/app.js?v=5"></script>
+  <script type="module" src="/js/app.js?v=7"></script>
 </body>
 </html>

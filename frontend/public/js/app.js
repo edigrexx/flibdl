@@ -25,6 +25,10 @@ let visibleCount = 20;
 
 const PAGE_SIZE = 20;
 
+// Текущая книга в шторке
+let sheetBookId   = null;
+let sheetBookTitle = null;
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initPWA();
@@ -56,6 +60,12 @@ function bindEvents() {
     document.getElementById('search-hint').textContent = 'Минимум 3 символа для поиска';
     clearSearchResults();
   });
+
+  // Шторка книги
+  document.getElementById('book-sheet-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeBookSheet();
+  });
+  document.getElementById('book-sheet-dl-btn').addEventListener('click', handleSheetDownload);
 
   document.getElementById('settings-btn').addEventListener('click', openSettings);
   document.getElementById('settings-overlay').addEventListener('click', (e) => {
@@ -351,6 +361,44 @@ function buildToolbarHtml(items, isBrowse) {
     </div>`;
 }
 
+// ─── Book Detail Sheet ────────────────────────────────────────────────────────
+function openBookSheet(bookId, title, author, defaultFormat = 'epub') {
+  sheetBookId    = String(bookId);
+  sheetBookTitle = title;
+
+  document.getElementById('book-sheet-title').textContent  = title || '';
+  document.getElementById('book-sheet-author').textContent = author || '';
+  document.getElementById('book-sheet-id').textContent     = `ID: ${bookId}`;
+
+  const flibUrl = `https://flibusta.is/b/${bookId}`;
+  document.getElementById('book-sheet-flib-link').href = flibUrl;
+
+  const img = document.getElementById('book-sheet-img');
+  img.style.display = '';
+  img.src = `/api/cover/${bookId}`;
+
+  const fmt = ['epub', 'fb2', 'fb2zip', 'mobi', 'html'].includes(defaultFormat)
+    ? defaultFormat : 'epub';
+  const radio = document.querySelector(`input[name="sheet-fmt"][value="${fmt}"]`);
+  if (radio) radio.checked = true;
+
+  document.getElementById('book-sheet-overlay').classList.add('open');
+}
+
+function closeBookSheet() {
+  document.getElementById('book-sheet-overlay').classList.remove('open');
+  sheetBookId = null;
+  sheetBookTitle = null;
+}
+
+async function handleSheetDownload() {
+  if (!sheetBookId) return;
+  const format = document.querySelector('input[name="sheet-fmt"]:checked')?.value || 'epub';
+  const { sourceId } = getSettings();
+  closeBookSheet();
+  await startDownload(sourceId, sheetBookId, format, sheetBookTitle);
+}
+
 function renderSection(title, items, useGrid) {
   return `
     <div class="search-section">
@@ -377,14 +425,17 @@ function renderCard(item) {
   const badgeIcon  = isBook ? '📖' : isAuthor ? '👤' : '📚';
   const badgeLabel = isBook ? 'Книга' : isAuthor ? 'Автор' : 'Серия';
 
-  // Обложка — только для книг
+  // Обложка — только для книг. Внутренний контейнер всегда показывает placeholder,
+  // поверх него грузится картинка; если не загрузилась — placeholder остаётся.
   const coverHtml = isBook ? `
-    <div class="rc-cover" data-id="${item.id}">
-      <img src="/api/cover/${item.id}"
-           loading="lazy"
-           alt=""
-           decoding="async"
-           onerror="this.closest('.rc-cover').classList.add('no-cover')" />
+    <div class="rc-cover">
+      <div class="rc-cover-inner">
+        <img src="/api/cover/${item.id}"
+             loading="lazy"
+             alt=""
+             decoding="async"
+             onerror="this.style.display='none'" />
+      </div>
     </div>` : '';
 
   // Ссылка на Флибусту
@@ -469,6 +520,17 @@ function bindResultEvents(container) {
     }
   });
 
+  // Клик по карточке книги → шторка
+  container.querySelectorAll('.result-card.type-book').forEach(card => {
+    card.addEventListener('click', (e) => {
+      // Не открываем шторку если кликнули на кнопку формата или ссылку
+      if (e.target.closest('.dl-fmt-btn') || e.target.closest('.rc-flib-link')) return;
+      const item = lastSearchResults.find(i => String(i.id) === card.dataset.id) || {};
+      openBookSheet(card.dataset.id, item.title || card.querySelector('.rc-title')?.textContent, item.author || '', 'epub');
+    });
+  });
+
+  // Кнопки форматов — быстрое скачивание без шторки
   container.querySelectorAll('.dl-fmt-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -484,7 +546,6 @@ function bindResultEvents(container) {
     });
   });
 
-  // Предотвращаем переход по ссылкам при нажатии на кнопки
   container.querySelectorAll('.rc-flib-link').forEach(link => {
     link.addEventListener('click', e => e.stopPropagation());
   });
@@ -562,13 +623,15 @@ function renderHistory(history) {
   }
 
   listEl.innerHTML = history.map(h => `
-    <div class="history-item">
+    <div class="history-item" role="button" tabindex="0"
+         data-rid="${h.remoteId}" data-fmt="${h.format || 'epub'}"
+         data-title="${escAttr(h.title || '')}" data-sid="${h.sourceId}">
       <div class="history-fmt-badge">${(h.format || 'book').substring(0, 4)}</div>
       <div class="history-info">
         <div class="history-title">${escHtml(h.title || `Книга #${h.remoteId}`)}</div>
         <div class="history-meta">ID ${h.remoteId} · ${(h.format || '').toUpperCase()} · ${formatDate(h.date)}</div>
       </div>
-      <button class="history-dl-btn" title="Скачать снова"
+      <button class="history-dl-btn" title="Скачать снова (тот же формат)"
         data-sid="${h.sourceId}" data-rid="${h.remoteId}"
         data-fmt="${h.format}" data-title="${escAttr(h.title || '')}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -576,6 +639,15 @@ function renderHistory(history) {
     </div>
   `).join('');
 
+  // Клик по строке → шторка с выбором формата
+  listEl.querySelectorAll('.history-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.history-dl-btn')) return;
+      openBookSheet(item.dataset.rid, item.dataset.title, '', item.dataset.fmt);
+    });
+  });
+
+  // Кнопка «↓» → скачать сразу с тем же форматом
   listEl.querySelectorAll('.history-dl-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
