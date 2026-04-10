@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1117" />
+  <meta name="description" content="Скачивайте книги с Флибусты в любом формате — epub, fb2, mobi" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FlibDL" />
+
+  <title>FlibDL — Флибуста Downloader</title>
+
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="stylesheet" href="/css/style.css?v=5" />
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="app-header">
+    <nav class="nav container">
+      <a href="/" class="nav-brand">
+        <div class="nav-logo">📖</div>
+        <div class="nav-title">Flib<span>DL</span></div>
+      </a>
+      <div class="nav-actions">
+        <div class="status-indicator" id="status-indicator" title="Статус сервера">
+          <div id="status-dot" class="status-dot"></div>
+          <span id="status-label" class="status-label">...</span>
+        </div>
+        <button id="install-btn" class="nav-btn nav-btn-accent" title="Установить приложение">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Установить</span>
+        </button>
+        <button id="settings-btn" class="nav-btn" title="Настройки">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ═══ Main Content ═══ -->
+  <main class="container">
+
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Поиск
+      </button>
+      <button class="tab-btn" data-tab="download">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        По ID
+      </button>
+      <button class="tab-btn" data-tab="history">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        История
+      </button>
+    </div>
+
+    <!-- ═══ Search Tab ═══ -->
+    <div data-tab-content="search">
+      <div class="search-hero">
+        <div class="search-hero-text">
+          <h1>Найдите книгу</h1>
+          <p>Поиск по названию, автору или серии</p>
+        </div>
+        <div class="input-wrapper search-wrapper">
+          <svg class="input-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search-input" placeholder="Название, автор, серия..." autocomplete="off" autocorrect="off" spellcheck="false" />
+          <button id="search-clear" class="search-clear-btn" title="Очистить" style="display:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <p class="search-hint" id="search-hint">Минимум 3 символа для поиска</p>
+      </div>
+
+      <div id="search-results"></div>
+    </div>
+
+    <!-- ═══ Download Tab ═══ -->
+    <div data-tab-content="download" class="hidden">
+      <div class="section-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Скачать по ID или URL
+      </div>
+
+      <form id="download-form">
+        <div class="card download-card">
+
+          <div class="input-wrapper">
+            <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <input type="text" id="book-url-input" placeholder="https://flibusta.is/b/123456 или 123456" autocomplete="off" />
+          </div>
+          <p id="url-hint" class="form-hint">Например: https://flibusta.is/b/123456 или просто 123456</p>
+
+          <div id="format-section" class="hidden">
+            <div class="format-label">Формат файла</div>
+            <div class="format-grid">
+              <div class="format-pill">
+                <input type="radio" name="format" value="epub" id="fmt-epub" checked />
+                <label for="fmt-epub"><span class="fmt-icon">📱</span>EPUB</label>
+              </div>
+              <div class="format-pill">
+                <input type="radio" name="format" value="fb2" id="fmt-fb2" />
+                <label for="fmt-fb2"><span class="fmt-icon">📄</span>FB2</label>
+              </div>
+              <div class="format-pill">
+                <input type="radio" name="format" value="fb2zip" id="fmt-fb2zip" />
+                <label for="fmt-fb2zip"><span class="fmt-icon">📦</span>FB2.ZIP</label>
+              </div>
+              <div class="format-pill">
+                <input type="radio" name="format" value="mobi" id="fmt-mobi" />
+                <label for="fmt-mobi"><span class="fmt-icon">📕</span>MOBI</label>
+              </div>
+              <div class="format-pill">
+                <input type="radio" name="format" value="html" id="fmt-html" />
+                <label for="fmt-html"><span class="fmt-icon">🌐</span>HTML</label>
+              </div>
+            </div>
+
+            <button type="submit" id="download-btn" class="btn btn-primary btn-full">
+              <span id="download-btn-spinner" class="spinner" style="display:none;"></span>
+              <span id="download-btn-text">Скачать книгу</span>
+            </button>
+          </div>
+
+          <div id="no-id-state" class="empty-state" style="padding: 20px 0 8px;">
+            <div class="empty-icon" style="font-size:2rem;">🔗</div>
+            <p>Введите URL книги или числовой ID</p>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <!-- ═══ History Tab ═══ -->
+    <div data-tab-content="history" class="hidden">
+      <div class="section-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        История скачиваний
+        <button id="clear-history-btn" class="btn-ghost btn-sm-icon" title="Очистить историю" style="margin-left: auto;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+      <div id="history-list"></div>
+    </div>
+
+  </main>
+
+  <!-- ═══ Floating Download Progress ═══ -->
+  <div id="dl-float" class="dl-float">
+    <div class="dl-float-inner">
+      <div class="dl-float-icon">
+        <div class="dl-spinner"></div>
+      </div>
+      <div class="dl-float-info">
+        <div class="dl-float-title" id="dl-float-title">Скачивание...</div>
+        <div class="dl-float-sub" id="dl-float-sub">Соединение...</div>
+      </div>
+      <div class="dl-float-progress-wrap">
+        <div class="dl-float-bar">
+          <div class="dl-float-fill" id="dl-float-fill"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Settings Modal ═══ -->
+  <div id="settings-overlay" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <h2>Настройки</h2>
+
+      <div class="form-group">
+        <label class="form-label" for="setting-source-id">Source ID</label>
+        <input type="text" id="setting-source-id" class="input-no-icon" placeholder="1" value="1" />
+        <p class="form-hint">ID источника (обычно 1). API ключ и URL бэкенда задаются через ENV сервера.</p>
+      </div>
+
+      <div class="form-actions">
+        <button id="settings-save-btn" class="btn btn-primary" style="flex:1;">Сохранить</button>
+        <button id="settings-cancel-btn" class="btn btn-secondary">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Toast Container ═══ -->
+  <div id="toast-container"></div>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <p>FlibDL · Книги в один клик</p>
+  </footer>
+
+  <script type="module" src="/js/app.js?v=5"></script>
+</body>
+</html>

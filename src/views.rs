@@ -1,0 +1,162 @@
+use axum::{
+    body::Body,
+    extract::{Path, Query},
+    http::{header, StatusCode},
+    response::{AppendHeaders, IntoResponse},
+};
+use axum::{
+    http::Request,
+    middleware::{self, Next},
+    response::Response,
+    routing::get,
+    Router,
+};
+use axum_prometheus::PrometheusMetricLayer;
+use base64::{engine::general_purpose, Engine};
+use serde::Deserialize;
+use serde_json::json;
+use tokio_util::io::ReaderStream;
+use tower_http::trace::{self, TraceLayer};
+use tracing::Level;
+
+use crate::{
+    config::CONFIG,
+    services::{
+        book_library::get_book, downloader::book_download, filename_getter::get_filename_by_book,
+        search::{get_author_books, get_series_books, search_books},
+    },
+};
+
+#[derive(Deserialize)]
+pub struct SearchParams {
+    pub q: String,
+}
+
+pub async fn search(Query(params): Query<SearchParams>) -> impl IntoResponse {
+    let results = search_books(&params.q).await;
+    (StatusCode::OK, json!(results).to_string())
+}
+
+pub async fn author(Path(id): Path<u32>) -> impl IntoResponse {
+    let results = get_author_books(id).await;
+    (StatusCode::OK, json!(results).to_string())
+}
+
+pub async fn series(Path(id): Path<u32>) -> impl IntoResponse {
+    let results = get_series_books(id).await;
+    (StatusCode::OK, json!(results).to_string())
+}
+
+pub async fn download(
+    Path((source_id, remote_id, file_type)): Path<(u32, u32, String)>,
+) -> impl IntoResponse {
+    let download_result = match book_download(source_id, remote_id, file_type.as_str()).await {
+        Ok(v) => v,
+        Err(_) => return Err((StatusCode::NO_CONTENT, "Can't download!".to_string())),
+    };
+
+    let data = match download_result {
+        Some(v) => v,
+        None => return Err((StatusCode::NO_CONTENT, "Can't download!".to_string())),
+    };
+
+    let filename = data.filename.clone();
+    let filename_ascii = data.filename_ascii.clone();
+    let file_size = data.data_size;
+
+    let reader = data.get_async_read();
+    let stream = ReaderStream::new(reader);
+
+    let encoder = general_purpose::STANDARD;
+
+    let headers = AppendHeaders([
+        (
+            header::CONTENT_DISPOSITION,
+            format!("attachment; filename={filename_ascii}"),
+        ),
+        (header::CONTENT_LENGTH, format!("{file_size}")),
+        (
+            header::HeaderName::from_static("x-filename-b64-ascii"),
+            encoder.encode(filename_ascii),
+        ),
+        (
+            header::HeaderName::from_static("x-filename-b64"),
+            encoder.encode(filename),
+        ),
+    ]);
+
+    Ok((headers, Body::from_stream(stream)))
+}
+
+pub async fn get_filename(Path((book_id, file_type)): Path<(u32, String)>) -> impl IntoResponse {
+    let (filename, filename_ascii) = match get_book(book_id).await {
+        Ok(book) => (
+            get_filename_by_book(&book, file_type.as_str(), false, false),
+            get_filename_by_book(&book, file_type.as_str(), false, true),
+        ),
+        Err(_) => return (StatusCode::BAD_REQUEST, "Book not found!".to_string()),
+    };
+
+    (
+        StatusCode::OK,
+        json!({
+            "filename": filename,
+            "filename_ascii": filename_ascii
+        })
+        .to_string(),
+    )
+}
+
+pub async fn health() -> impl IntoResponse {
+    (StatusCode::OK, json!({"status": "healthy"}).to_string())
+}
+
+async fn auth(req: Request<axum::body::Body>, next: Next) -> Result<Response, StatusCode> {
+    let auth_header = req
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|header| header.to_str().ok());
+
+    let auth_header = if let Some(auth_header) = auth_header {
+        auth_header
+    } else {
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+
+    if auth_header != CONFIG.api_key {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    Ok(next.run(req).await)
+}
+
+pub async fn get_router() -> Router {
+    let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
+
+    let app_router = Router::new()
+        .route(
+            "/download/{source_id}/{remote_id}/{file_type}",
+            get(download),
+        )
+        .route("/filename/{book_id}/{file_type}", get(get_filename))
+        .route("/search", get(search))
+        .route("/author/{id}", get(author))
+        .route("/series/{id}", get(series))
+        .layer(middleware::from_fn(auth))
+        .layer(prometheus_layer);
+
+    let health_router = Router::new().route("/health", get(health));
+
+    let metric_router =
+        Router::new().route("/metrics", get(|| async move { metric_handle.render() }));
+
+    Router::new()
+        .merge(app_router)
+        .merge(health_router)
+        .merge(metric_router)
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(trace::DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(trace::DefaultOnResponse::new().level(Level::INFO)),
+        )
+}

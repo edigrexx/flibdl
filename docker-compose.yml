@@ -1,0 +1,56 @@
+# ═══════════════════════════════════════════
+# FlibDL — Docker Compose для Coolify
+# ═══════════════════════════════════════════
+#
+# Обязательные переменные окружения:
+#   API_KEY       — любой ключ авторизации (придумай сам)
+#   FL_SOURCES    — JSON массив зеркал Флибусты
+#
+# Пример FL_SOURCES:
+#   [{"url":"https://flibusta.is"}]
+#
+# Опциональные:
+#   SENTRY_DSN    — DSN для Sentry (мониторинг ошибок)
+#   FLIBUSTA_URL  — URL поиска Флибусты (по умолчанию https://flibusta.is/booksearch)
+#
+# ═══════════════════════════════════════════
+
+services:
+  # ── Backend: Rust книго-загрузчик ──
+  backend:
+    build:
+      context: .
+      dockerfile: docker/build.dockerfile
+    environment:
+      - API_KEY=${API_KEY}
+      - FL_SOURCES=${FL_SOURCES}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+    expose:
+      - "8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Frontend: Nginx PWA ──
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - BACKEND_URL=http://backend:8080
+      - FLIBUSTA_URL=${FLIBUSTA_URL:-https://flibusta.is/booksearch}
+      - API_KEY=${API_KEY}
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health-fe"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
