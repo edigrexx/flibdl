@@ -621,6 +621,85 @@ input::placeholder { color: var(--text-muted); }
   gap: 8px;
 }
 
+/* ── Results Toolbar (count + sort) ── */
+.results-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.results-count-text {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.sort-pills {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sort-pill {
+  padding: 4px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.sort-pill:hover { background: var(--bg-hover); color: var(--text-primary); }
+.sort-pill.active {
+  background: var(--gold-glow);
+  border-color: var(--gold-dim);
+  color: var(--gold);
+}
+
+/* ── Load More ── */
+.load-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  margin-top: 14px;
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.load-more-btn:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-gold);
+  color: var(--gold);
+}
+.load-more-total {
+  font-size: 0.72rem;
+  opacity: 0.6;
+}
+
+/* ── Tab count badge ── */
+.tab-count {
+  font-size: 0.68rem;
+  opacity: 0.65;
+}
+
 /* ── Book Result Card ── */
 .result-card {
   display: flex;
@@ -658,6 +737,47 @@ input::placeholder { color: var(--text-muted); }
 .type-book   .rc-stripe { background: var(--gold); }
 .type-author .rc-stripe { background: var(--accent-blue); }
 .type-series .rc-stripe { background: var(--accent-purple); }
+
+/* Book cover */
+.rc-cover {
+  flex-shrink: 0;
+  width: 54px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0 10px 10px;
+}
+
+.rc-cover img {
+  width: 44px;
+  height: 62px;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+  display: block;
+  background: var(--bg-elevated);
+}
+
+/* Fallback если обложки нет */
+.rc-cover.no-cover {
+  width: 54px;
+}
+.rc-cover.no-cover img {
+  display: none;
+}
+.rc-cover.no-cover::after {
+  content: '📖';
+  font-size: 1.6rem;
+  opacity: 0.25;
+  width: 44px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+}
 
 .rc-body {
   flex: 1;
@@ -705,11 +825,32 @@ input::placeholder { color: var(--text-muted); }
   text-overflow: ellipsis;
 }
 
+.rc-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
 .rc-id {
   font-size: 0.68rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
-  margin-bottom: 10px;
+}
+
+.rc-flib-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition);
+  padding: 1px 0;
+}
+.rc-flib-link:hover {
+  color: var(--accent-blue);
 }
 
 /* Format download buttons */

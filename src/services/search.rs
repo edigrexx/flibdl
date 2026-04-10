@@ -215,7 +215,7 @@ fn parse_search_results(html: &str) -> Vec<SearchResult> {
 
         results.push(SearchResult { id, title, author, item_type });
 
-        if results.len() >= 120 {
+        if results.len() >= 300 {
             break;
         }
     }

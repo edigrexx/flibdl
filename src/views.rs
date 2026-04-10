@@ -22,7 +22,10 @@ use tracing::Level;
 use crate::{
     config::CONFIG,
     services::{
-        book_library::get_book, downloader::book_download, filename_getter::get_filename_by_book,
+        book_library::get_book,
+        cover::fetch_cover,
+        downloader::book_download,
+        filename_getter::get_filename_by_book,
         search::{get_author_books, get_series_books, search_books},
     },
 };
@@ -107,6 +110,19 @@ pub async fn get_filename(Path((book_id, file_type)): Path<(u32, String)>) -> im
     )
 }
 
+pub async fn get_cover(Path(book_id): Path<u32>) -> impl IntoResponse {
+    match fetch_cover(book_id).await {
+        Some((bytes, content_type)) => {
+            let headers = AppendHeaders([
+                (header::CONTENT_TYPE, content_type),
+                (header::CACHE_CONTROL, "public, max-age=604800".to_string()),
+            ]);
+            Ok((headers, Body::from(bytes)))
+        }
+        None => Err(StatusCode::NOT_FOUND),
+    }
+}
+
 pub async fn health() -> impl IntoResponse {
     (StatusCode::OK, json!({"status": "healthy"}).to_string())
 }
@@ -142,6 +158,7 @@ pub async fn get_router() -> Router {
         .route("/search", get(search))
         .route("/author/{id}", get(author))
         .route("/series/{id}", get(series))
+        .route("/cover/{book_id}", get(get_cover))
         .layer(middleware::from_fn(auth))
         .layer(prometheus_layer);
 
