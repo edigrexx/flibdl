@@ -462,7 +462,7 @@ function renderCard(item) {
     </div>` : '';
 
   return `
-    <div class="result-card type-${item.item_type}">
+    <div class="result-card type-${item.item_type}" data-id="${item.id}" data-type="${item.item_type}">
       <div class="rc-stripe"></div>
       ${coverHtml}
       <div class="rc-body">
