@@ -77,47 +77,68 @@ export async function downloadBook(sourceId, remoteId, fileType, onProgress) {
   // Извлекаем имена файла из заголовков
   // filename     — Unicode (для отображения в UI)
   // filenameAscii — транслит ASCII (для a.download, безопасен на всех платформах)
-  let filename      = `book_${remoteId}.${fileType}`;
-  let filenameAscii = filename;
+  const fallbackName = `book_${remoteId}.${fileType}`;
+  let filename      = fallbackName;
+  let filenameAscii = fallbackName;
 
-  const b64Ascii = response.headers.get('x-filename-b64-ascii');
-  if (b64Ascii) {
-    try { filenameAscii = atob(b64Ascii); } catch { /* оставляем fallback */ }
+  try {
+    const b64Ascii = response.headers.get('x-filename-b64-ascii');
+    if (b64Ascii) {
+      const decoded = atob(b64Ascii);
+      if (decoded) filenameAscii = decoded;
+    }
+
+    const b64Header = response.headers.get('x-filename-b64');
+    if (b64Header) {
+      // TextDecoder вместо устаревшего escape() — корректно на всех платформах
+      const bytes = Uint8Array.from(atob(b64Header), c => c.charCodeAt(0));
+      const decoded = new TextDecoder('utf-8').decode(bytes);
+      if (decoded) filename = decoded;
+    } else {
+      const disposition = response.headers.get('content-disposition');
+      if (disposition) {
+        const match = disposition.match(/filename=(.+)/);
+        if (match && match[1]) filename = match[1];
+      }
+      if (filename === fallbackName) filename = filenameAscii;
+    }
+  } catch {
+    // Если что-то пошло не так с заголовками — используем fallback
   }
 
-  const b64Header = response.headers.get('x-filename-b64');
-  if (b64Header) {
-    try {
-      filename = decodeURIComponent(escape(atob(b64Header)));
-    } catch {
-      filename = filenameAscii;
-    }
-  } else {
-    const disposition = response.headers.get('content-disposition');
-    if (disposition) {
-      const match = disposition.match(/filename=(.+)/);
-      if (match) filename = match[1];
-    }
-    if (filename === `book_${remoteId}.${fileType}`) filename = filenameAscii;
-  }
+  // Гарантируем что имена — непустые строки
+  if (!filenameAscii) filenameAscii = fallbackName;
+  if (!filename) filename = filenameAscii;
 
   const contentLength = response.headers.get('content-length');
   const total = contentLength ? parseInt(contentLength, 10) : 0;
 
-  const reader = response.body.getReader();
-  const chunks = [];
-  let received = 0;
+  const mimeType = MIME_TYPES[fileType] || 'application/octet-stream';
+  let blob;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    received += value.length;
-    if (onProgress) onProgress(received, total);
+  if (response.body && typeof response.body.getReader === 'function') {
+    // Потоковое чтение с прогрессом (поддерживается в современных браузерах)
+    const reader = response.body.getReader();
+    const chunks = [];
+    let received = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        chunks.push(value);
+        received += value.length;
+        if (onProgress) onProgress(received, total);
+      }
+    }
+
+    blob = new Blob(chunks, { type: mimeType });
+  } else {
+    // Fallback для старых iOS/Safari где response.body недоступен
+    const buffer = await response.arrayBuffer();
+    blob = new Blob([buffer], { type: mimeType });
   }
 
-  const mimeType = MIME_TYPES[fileType] || 'application/octet-stream';
-  const blob = new Blob(chunks, { type: mimeType });
   return { blob, filename, filenameAscii };
 }
 

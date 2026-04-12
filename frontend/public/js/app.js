@@ -162,14 +162,32 @@ async function startDownload(sourceId, remoteId, format, bookTitle) {
       }
     );
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    // На Android кириллические имена в a.download могут тихо сломать сохранение —
-    // используем ASCII-транслит для атрибута, Unicode только для отображения
-    a.download = filenameAscii;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    // iOS: Web Share API с файлом (работает в Safari и PWA-режиме)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const file  = new File([blob], filenameAscii, { type: blob.type });
+    let shared  = false;
+
+    if (isIOS && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: filename });
+        shared = true;
+      } catch (shareErr) {
+        // Пользователь отменил или share недоступен — идём в fallback
+        if (shareErr.name !== 'AbortError') console.warn('Share failed:', shareErr);
+      }
+    }
+
+    if (!shared) {
+      // Стандартный путь: blob URL + a.download (Android, Desktop, iOS 14.5+)
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      // На Android кириллические имена в a.download могут тихо сломать сохранение —
+      // используем ASCII-транслит для атрибута, Unicode только для отображения
+      a.download = filenameAscii;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
 
     dlFill.classList.remove('indeterminate');
     dlFill.style.width = '100%';
