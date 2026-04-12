@@ -398,8 +398,10 @@ async function handleSheetDownload() {
   if (!sheetBookId) return;
   const format = document.querySelector('input[name="sheet-fmt"]:checked')?.value || 'epub';
   const { sourceId } = getSettings();
+  const bookId    = sheetBookId;
+  const bookTitle = sheetBookTitle;
   closeBookSheet();
-  await startDownload(sourceId, sheetBookId, format, sheetBookTitle);
+  await startDownload(sourceId, bookId, format, bookTitle);
 }
 
 function renderSection(title, items, useGrid) {
