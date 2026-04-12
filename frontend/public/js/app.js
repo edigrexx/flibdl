@@ -148,7 +148,7 @@ async function startDownload(sourceId, remoteId, format, bookTitle) {
   if (btn) { btn.disabled = true; btnText.textContent = 'Загрузка...'; btnSpinner.style.display = 'block'; }
 
   try {
-    const { blob, filename } = await downloadBook(sourceId, remoteId, format,
+    const { blob, filename, filenameAscii } = await downloadBook(sourceId, remoteId, format,
       (received, total) => {
         dlFill.classList.remove('indeterminate');
         if (total > 0) {
@@ -164,9 +164,12 @@ async function startDownload(sourceId, remoteId, format, bookTitle) {
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = filename;
+    a.href = url;
+    // На Android кириллические имена в a.download могут тихо сломать сохранение —
+    // используем ASCII-транслит для атрибута, Unicode только для отображения
+    a.download = filenameAscii;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
 
     dlFill.classList.remove('indeterminate');
     dlFill.style.width = '100%';

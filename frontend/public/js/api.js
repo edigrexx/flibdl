@@ -51,8 +51,16 @@ export async function checkHealth() {
   }
 }
 
+const MIME_TYPES = {
+  epub:   'application/epub+zip',
+  fb2:    'application/x-fictionbook+xml',
+  fb2zip: 'application/zip',
+  mobi:   'application/x-mobipocket-ebook',
+  html:   'text/html',
+};
+
 /**
- * Скачивает книгу и возвращает Blob + имя файла
+ * Скачивает книгу и возвращает Blob + имена файла (Unicode и ASCII)
  * Nginx автоматически подставляет Authorization заголовок.
  */
 export async function downloadBook(sourceId, remoteId, fileType, onProgress) {
@@ -66,15 +74,23 @@ export async function downloadBook(sourceId, remoteId, fileType, onProgress) {
     throw new Error(`Ошибка сервера: ${response.status}`);
   }
 
-  // Извлекаем имя файла из заголовков
-  let filename = `book_${remoteId}.${fileType}`;
+  // Извлекаем имена файла из заголовков
+  // filename     — Unicode (для отображения в UI)
+  // filenameAscii — транслит ASCII (для a.download, безопасен на всех платформах)
+  let filename      = `book_${remoteId}.${fileType}`;
+  let filenameAscii = filename;
+
+  const b64Ascii = response.headers.get('x-filename-b64-ascii');
+  if (b64Ascii) {
+    try { filenameAscii = atob(b64Ascii); } catch { /* оставляем fallback */ }
+  }
+
   const b64Header = response.headers.get('x-filename-b64');
   if (b64Header) {
     try {
       filename = decodeURIComponent(escape(atob(b64Header)));
     } catch {
-      const asciiHeader = response.headers.get('x-filename-b64-ascii');
-      if (asciiHeader) filename = atob(asciiHeader);
+      filename = filenameAscii;
     }
   } else {
     const disposition = response.headers.get('content-disposition');
@@ -82,6 +98,7 @@ export async function downloadBook(sourceId, remoteId, fileType, onProgress) {
       const match = disposition.match(/filename=(.+)/);
       if (match) filename = match[1];
     }
+    if (filename === `book_${remoteId}.${fileType}`) filename = filenameAscii;
   }
 
   const contentLength = response.headers.get('content-length');
@@ -99,8 +116,9 @@ export async function downloadBook(sourceId, remoteId, fileType, onProgress) {
     if (onProgress) onProgress(received, total);
   }
 
-  const blob = new Blob(chunks);
-  return { blob, filename };
+  const mimeType = MIME_TYPES[fileType] || 'application/octet-stream';
+  const blob = new Blob(chunks, { type: mimeType });
+  return { blob, filename, filenameAscii };
 }
 
 /**
